@@ -3,7 +3,7 @@
 **Project title:** PreStocks Terminal — pre-IPO premium watch & daily brief
 
 **Live demo:** https://prestocks-terminal.vercel.app
-**GitHub:** _(placeholder — repo to be added before deadline)_
+**GitHub:** https://github.com/Alex20Sas12/prestocks-terminal
 **Video:** _(placeholder)_
 
 **Bounties:** PreStocks ($10K) · Main track
