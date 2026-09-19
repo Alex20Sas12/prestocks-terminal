@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Token — PreStocks Terminal</title>
+<meta name="description" content="Premium/discount history, volume and holder charts for a PreStocks tokenized pre-IPO company on Solana.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="/">PreStocks <b>Terminal</b></a>
+  <nav class="top"><a href="/">Dashboard</a><a href="/brief">Pre-IPO Brief</a></nav>
+</div></header>
+<main class="wrap" id="main"><p class="spin">Loading…</p></main>
+<script src="/app.js"></script>
+<script>
+(async () => {
+  const main = $("#main");
+  const sym = (new URLSearchParams(location.search).get("symbol") || "").toUpperCase();
+  try {
+    const [d, stats] = await Promise.all([getJSON("/api/prestocks"), getJSON("/api/stats")]);
+    const t = d.tokens.find((x) => x.symbol === sym);
+    if (!t) throw new Error("unknown token " + sym);
+
+    const vols = stats.volume.map((row) => ({ x: row.date, y: row[t.symbol] || 0 })).slice(-90);
+    const holds = stats.holders.map((row) => ({ x: row.week, y: row[t.symbol] || 0 }));
+    const launch = stats.launchDates && stats.launchDates[t.symbol];
+    const premCls = t.premiumPct > 0.5 ? "chg-dn" : t.premiumPct < -0.5 ? "chg-up" : "";
+
+    main.innerHTML = `
+      <div class="token-head">
+        <img src="${t.image}" alt="" onerror="this.style.visibility='hidden'">
+        <div>
+          <h1>${t.name.replace(" PreStocks", "")}</h1>
+          <div class="sym">${t.symbol}${launch ? " · launched " + launch.slice(0, 10) : ""} · <a href="${t.external_url}" rel="noopener">prestocks.com</a> · <a href="https://jup.ag/swap/USDC-${t.mint}" rel="noopener">Trade on Jupiter ↗</a></div>
+        </div>
+      </div>
+      <div class="mark-line">
+        <div><div class="k sub" style="margin:0">Token price</div><span class="p">${fmtUSD(t.tokenPrice)}</span>
+          <b class="${t.priceChange24h >= 0 ? "chg-up" : "chg-dn"}">${fmtPct(t.priceChange24h)} 24h</b></div>
+        <div><div class="k sub" style="margin:0">Mark price</div><span class="p">${fmtUSD(t.markPrice)}</span></div>
+        <div><div class="k sub" style="margin:0">Premium / discount</div><span class="p ${premCls}">${fmtPct(t.premiumPct)}</span></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="k">Mark valuation</div><div class="v">${fmtBig(t.markValuation)}</div></div>
+        <div class="stat"><div class="k">Implied valuation</div><div class="v">${fmtBig(t.impliedValuation)}</div></div>
+        <div class="stat"><div class="k">On-chain liquidity</div><div class="v">${fmtBig(t.liquidity)}</div></div>
+        <div class="stat"><div class="k">Supply (tokenized shares)</div><div class="v">${fmtNum(t.supply)}</div></div>
+      </div>
+      <div class="two">
+        <div class="panel"><h2>Daily volume (last 90 days)</h2>${svgChart(vols)}<p class="note">USD traded per day, all venues aggregated by PreStocks.</p></div>
+        <div class="panel"><h2>Holders (weekly)</h2>${svgChart(holds, { fmt: (v) => fmtNum(v) })}<p class="note">Unique holders of ${t.symbol} on Solana.</p></div>
+      </div>
+      <div class="panel">
+        <h2>What the premium means</h2>
+        <p style="font-size:14px;color:var(--muted)">The <b>mark price</b> is PreStocks' estimate of the private company's per-share value, updated from primary rounds and secondary marks. The <b>token price</b> is where ${t.symbol} actually trades on Solana DEXes, 24/7. When the token trades above mark (premium), buyers pay extra for on-chain liquidity and price discovery between private rounds; below mark (discount) can signal weak demand — or a bargain relative to the last mark. Persistent wide gaps have historically narrowed around funding rounds and lockup events.</p>
+      </div>
+      <div class="panel">
+        <h2>About ${t.name.replace(" PreStocks", "")}</h2>
+        <p style="font-size:14px;color:var(--muted);white-space:pre-line">${(t.description || "").replace(/</g, "&lt;")}</p>
+        <p class="note">Mint: <code style="font-size:11px">${t.mint}</code> · Mark updated ${t.markUpdatedAt ? new Date(t.markUpdatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "—"}</p>
+      </div>
+      <footer>Not affiliated with PreStocks. Not financial advice. <a href="/">← All tokens</a></footer>`;
+    document.title = `${t.symbol} ${fmtPct(t.premiumPct)} vs mark — PreStocks Terminal`;
+    const meta = document.querySelector('meta[name="description"]');
+    meta.content = `${t.name}: token ${fmtUSD(t.tokenPrice)} vs mark ${fmtUSD(t.markPrice)} (${fmtPct(t.premiumPct)}), ${fmtBig(t.markValuation)} valuation. Volume and holder charts on PreStocks Terminal.`;
+  } catch (e) {
+    main.innerHTML = `<p class="err">Failed to load: ${e.message}. <a href="/">Back to dashboard</a></p>`;
+  }
+})();
+</script>
+</body>
+</html>

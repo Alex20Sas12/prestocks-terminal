@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PreStocks Terminal — pre-IPO token analytics on Solana</title>
+<meta name="description" content="Live analytics for the 8 PreStocks tokenized pre-IPO companies: token price vs mark price, premium/discount, valuations, volume and holder charts. OpenAI, Anthropic, SpaceX, Anduril, Kalshi and more — on Solana.">
+<meta property="og:title" content="PreStocks Terminal — pre-IPO token analytics">
+<meta property="og:description" content="Premium/discount watch, valuations, volume & holder charts for tokenized pre-IPO stocks on Solana.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="/">PreStocks <b>Terminal</b></a>
+  <nav class="top"><a href="/" class="active">Dashboard</a><a href="/brief">Pre-IPO Brief</a></nav>
+</div></header>
+<main class="wrap">
+  <h1>Pre-IPO market, live on Solana</h1>
+  <p class="sub">Token price vs mark price for the 8 PreStocks tokenized private companies. Premium = paying up for 24/7 on-chain liquidity; discount = potential bargains.</p>
+  <div id="summary" class="stat-grid"></div>
+  <div id="cards" class="grid"><p class="spin">Loading live data…</p></div>
+  <p class="updated" id="updated"></p>
+  <footer>
+    Data: <a href="https://prestocks.com" rel="noopener">prestocks.com</a> public API + Jupiter price API. Prices refresh every 5 minutes.
+    Not affiliated with PreStocks. Not financial advice — pre-IPO tokens are volatile and illiquid.<br>
+    Built for the <a href="https://hackathons.solana.com/hackathons/stocklana" rel="noopener">Stocklana hackathon</a>. <a href="/brief">Read today's Pre-IPO Brief →</a>
+  </footer>
+</main>
+<script src="/app.js"></script>
+<script>
+(async () => {
+  const cards = $("#cards");
+  try {
+    const d = await getJSON("/api/prestocks");
+    const toks = d.tokens.sort((a, b) => (b.markValuation || 0) - (a.markValuation || 0));
+    cards.innerHTML = toks.map((t) => `
+      <a class="card" href="/token?symbol=${encodeURIComponent(t.symbol)}">
+        <div class="head">
+          <img src="${t.image}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+          <div><div class="name">${t.name.replace(" PreStocks", "")}</div><div class="sym">${t.symbol}</div></div>
+        </div>
+        <div class="px"><span class="big">${fmtUSD(t.tokenPrice)}</span>${premiumBadge(t.premiumPct)}</div>
+        <div class="rows">
+          <div><span>Mark price</span><b>${fmtUSD(t.markPrice)}</b></div>
+          <div><span>Mark valuation</span><b>${fmtBig(t.markValuation)}</b></div>
+          <div><span>24h</span><b class="${t.priceChange24h >= 0 ? "chg-up" : "chg-dn"}">${fmtPct(t.priceChange24h)}</b></div>
+          <div><span>Liquidity</span><b>${fmtBig(t.liquidity)}</b></div>
+        </div>
+      </a>`).join("");
+    const totMcap = toks.reduce((s, t) => s + (t.markValuation || 0), 0);
+    const totLiq = toks.reduce((s, t) => s + (t.liquidity || 0), 0);
+    const avgPrem = toks.reduce((s, t) => s + (t.premiumPct || 0), 0) / toks.length;
+    $("#summary").innerHTML = `
+      <div class="stat"><div class="k">Tokens tracked</div><div class="v">${toks.length}</div></div>
+      <div class="stat"><div class="k">Combined mark valuation</div><div class="v">${fmtBig(totMcap)}</div></div>
+      <div class="stat"><div class="k">On-chain liquidity</div><div class="v">${fmtBig(totLiq)}</div></div>
+      <div class="stat"><div class="k">Avg premium to mark</div><div class="v">${fmtPct(avgPrem)}</div></div>`;
+    $("#updated").textContent = "Updated " + new Date(d.updatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+    document.title = `PreStocks Terminal — ${toks.length} pre-IPO tokens, ${fmtBig(totMcap)} combined valuation`;
+  } catch (e) {
+    cards.innerHTML = `<p class="err">Failed to load live data: ${e.message}. <a href="javascript:location.reload()">Retry</a></p>`;
+  }
+})();
+</script>
+</body>
+</html>

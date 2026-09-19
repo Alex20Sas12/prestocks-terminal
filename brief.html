@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pre-IPO Brief — daily digest · PreStocks Terminal</title>
+<meta name="description" content="Today's Pre-IPO Brief: premium/discount watch, volume and holder moves across the 8 PreStocks tokenized private companies. Generated daily from live data.">
+<meta property="og:title" content="Pre-IPO Brief — daily pre-IPO market digest">
+<meta property="og:description" content="Premium watch, volume movers and holder growth for tokenized pre-IPO stocks on Solana.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📰</text></svg>">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="/">PreStocks <b>Terminal</b></a>
+  <nav class="top"><a href="/">Dashboard</a><a href="/brief" class="active">Pre-IPO Brief</a></nav>
+</div></header>
+<main class="wrap">
+  <article class="brief" id="brief"><p class="spin">Generating today's brief…</p></article>
+  <p class="note wrap" style="padding:0">This brief is generated live from the <a href="/api/brief">/api/brief</a> endpoint — the same markdown an automated cron publishes to X/Telegram every morning.</p>
+  <footer class="wrap" style="padding-left:0;padding-right:0"><a href="/">← Dashboard</a> · Not financial advice.</footer>
+</main>
+<script src="/app.js"></script>
+<script>
+(async () => {
+  const el = $("#brief");
+  try {
+    const d = await getJSON("/api/brief");
+    el.innerHTML = renderMd(d.markdown);
+    document.title = `Pre-IPO Brief ${d.date} — PreStocks Terminal`;
+  } catch (e) {
+    el.innerHTML = `<p class="err">Failed to load brief: ${e.message}. <a href="javascript:location.reload()">Retry</a></p>`;
+  }
+})();
+</script>
+</body>
+</html>
